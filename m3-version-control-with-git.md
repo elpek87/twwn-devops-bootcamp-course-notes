@@ -1,6 +1,6 @@
 # MODULE 3 - Version Control wit GIT
 
-# Bsic commands walkthrough:
+## Basic commands walkthrough:
 
 `$ git init`
 
