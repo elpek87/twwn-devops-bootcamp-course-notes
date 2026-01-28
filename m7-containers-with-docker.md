@@ -72,23 +72,27 @@ If run with --name you can specify custom name of the container.
 
 3. Run containers and specify in which network they should be in:
 
-`$ docker run -d -p 2717:2717 \`
-`-e MONGO_INITDB_ROOT_USERNAME=admin \`
-`-e MONGO_INITDB_ROOT_PASSWORD=password \`
-`--name mongodb \`
-`--net mongo-network \`
-`mongo`
+```
+$ docker run -d -p 2717:2717 \
+-e MONGO_INITDB_ROOT_USERNAME=admin \
+-e MONGO_INITDB_ROOT_PASSWORD=password \
+--name mongodb \
+--net mongo-network \
+mongo
+```
 
-`docker run -d -p 8081:8081 \`
-`-e ME_CONFIG_MONGODB_ADMINUSERNAME=admin \`
-`-e ME_CONFIG_MONGODB_ADMINPASSWORD=password \`
-`-e ME_CONFIG_BASICAUTH_USERNAME=user \`
-`-e ME_CONFIG_BASICAUTH_PASSWORD=pass \`
-`-e ME_CONFIG_MONGODB_SERVER=mongodb \`
-`-e ME_CONFIG_MONGODB_URL=mongodb://mongodb:27017 \`
-`--net mongo-network \`
-`--name mongo-express \`
-`mongo-express`
+```
+docker run -d -p 8081:8081 \
+-e ME_CONFIG_MONGODB_ADMINUSERNAME=admin \
+-e ME_CONFIG_MONGODB_ADMINPASSWORD=password \
+-e ME_CONFIG_BASICAUTH_USERNAME=user \
+-e ME_CONFIG_BASICAUTH_PASSWORD=pass \
+-e ME_CONFIG_MONGODB_SERVER=mongodb \
+-e ME_CONFIG_MONGODB_URL=mongodb://mongodb:27017 \
+--net mongo-network \
+--name mongo-express \
+mongo-express
+```
 
 4. Make changes to the NodeJS application so that it can use MongoDB that was just started with Docker -
 
@@ -163,3 +167,36 @@ After that image can be pushed to the remote registry:
 `$ docker push 192.168.0.78:8083/my-js-app:1.0`
 
 ## Deploy docker image on a server
+
+To deploy the image on the server you can use docker-compose.yml file in which an image is defined as follows:
+
+`image: 192.168.0.78:8083/my-js-app:1.2`
+
+## Docker Volumes - Persisting Data
+
+A Docker volume is a Docker-managed storage mechanism used to persist data outside a container’s writable layer. Volumes live on the host (or a remote storage backend), but Docker controls their lifecycle and location, not your container image.
+
+There are several types of volumes:
+
+- bind mounts
+- anonymous
+- named volume
+
+To create persistent docker volume:
+
+`$ docker volume create --name nexus-data`
+
+After that we can run Nexus as Docker container:
+
+`$ docker run -p 8081:8081 --name nexus -v nexus-data:/nexus-data sonatype/nexus3`
+
+## Docker Best Practices
+
+1. Use official docker images as base image
+2. Use fixed image versions - not latest
+3. Use small official images unless full blown OS is absolutely necessary
+4. Optimize caching image layers - if one layer changes all the next ones are rebuilt. Use commands from least to most frequently changing. Tip: docker history - shows layers
+5. Use .dockerignore file
+6. Exclude build dependencies from the images using multi-stage-builds
+7. Don't use root to run the app in the container if not necessary
+8. Scan your images for vulnerabilities (docker scout cves image:tag)
