@@ -119,3 +119,43 @@ Now let's push it to Nexus. First we need to configure our docker that runs in o
 	"insecure-registries":["NEXUS-IP:8083"]
 }
 ```
+<<<<<<< Updated upstream
+=======
+# Freestyle to Pipeline Job
+
+Chained Freestyle Jobs have their limitations - mostly to the UI and what plugins offer. Something more scriptable was needed, much better for CI/CD scenarios and that's why Pipeline Jobs were introduced in Jenkins.
+
+it’s a scripted workflow that tells Jenkins exactly how your app should be built and released, step by step. Pipelines are scripted in Groovy.
+
+There's a checkbox in Pipeline definition section - "Use Groovy Sandbox" - that protects Jenkins from potentially dangerous code. Block unsafe methods, runs the script in restricted environment etc. If unchecked then such script needs to be reviewed and approved by Jenkins administrator.
+
+Best practice in IaC is to keep your pipeline scripts together with the app in git repository - then in jenkins we use "Pipeline script from SCM".
+
+Jenkins pipelines can be written scripted or declarative.
+
+Scripted:
+
+- initial syntax
+- Groovy engine
+- flexible and powerful yet quite complex
+
+Declarative:
+- recent addition to pipelines
+- less powerful but easier to get started
+- predefined structure
+
+Jenkinsfile requirements:
+
+1. "pipeline" - top level
+2. "agent" - where to execute (useful if jenkins is clustered)
+3. "stages" - where all the work happens
+   - it uses "stage" and "steps"
+
+Pipeline jobs allow you to:
+
+- run multiple tasks in parallel
+- take user input
+- evaluate conditional statements
+
+All of the above is not easily done using plugins (chained freestyle) not to mention maintenance overhead when using them!
+>>>>>>> Stashed changes
