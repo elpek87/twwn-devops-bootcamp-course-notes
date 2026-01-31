@@ -156,3 +156,112 @@ Pipeline jobs allow you to:
 - evaluate conditional statements
 
 All of the above is not easily done using plugins (chained freestyle) not to mention maintenance overhead when using them!
+
+# Jenkinsfile Syntax
+
+
+## POST
+
+Post actions (post) - run steps after a stage or pipeline finishes.
+
+Conditions for the post actions are:
+
+- always
+- success
+- faulure
+
+```
+post {
+    success {
+        echo 'Success!'
+    }
+    failure {
+        echo 'Failed!'
+    }
+}
+```
+
+## WHEN
+
+Stage conditions - run stage on condition. It can be useful when running stage for certain branch only. It takes logical operators like AND / OR etc.
+
+```
+stage('Deploy') {
+            when {
+                branch 'main'
+            }
+```
+## ENV
+
+Jenkinsfile provides some variables and also allows defining custom variables used later in pipelines. List of vars provided by Jenkins is available under **http://jenkins-domain.tld/env-vars.html**.
+
+To define your own var:
+
+```
+environment {
+   YOUR_VAR = 'x'
+}
+
+stages {
+   stage("build") {
+      steps {
+         echo 'building ${YOUR_VAR}' <- single quotes - interpolation, double quotes string
+      }
+   }
+}
+```
+
+Credentials can also be passed as variables:
+1. credentials('credentials-ID') <- scope of whole pipeline
+2. withCredentials() <- scope of block
+
+## TOOLS
+
+Tools attribute in Jenkins is for declaring which tools need to be installed before running pipeline.  It’s a declarative-only feature that integrates with Global Tool Configuration in Jenkins.
+
+```
+tools {
+        maven 'maven-3.9'
+}
+```
+## PARAMETERS
+
+Parameters let you customize a build at runtime. When a job has parameters, Jenkins shows a form before the build starts so users (or automation) can pass values in.
+
+```
+parameters {
+        string(name: 'VERSION', defaultValue: '', description: 'version to deploy on prod)
+        choice(name: 'VERSION, choices: ['1.1.01, '1.2.0', '1.3.0'] description: ''])
+        booleanParam(name: 'executeTests', defaultValue: true, description '')
+    }
+
+stage("test") {
+   when {
+      params.executeTests
+   }
+}
+```
+
+Once Jenkins has parameters defined and fetched you can run build with "Build with Parameters".
+
+## EXTERNAL SCRIPTS
+
+Instead of putting all logic in a single Jenkinsfile, you can move reusable logic into .groovy files and load them into the pipeline. Envs and parameters are also available for groovy scripts.
+
+```
+def gv
+
+pipeline {
+   agent any
+
+   stages {
+      stage("init") {
+         steps {
+            script {
+               gv = load "script.groovy"
+            }
+         }
+      }
+   }
+}
+```
