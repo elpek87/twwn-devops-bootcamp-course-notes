@@ -119,8 +119,6 @@ Now let's push it to Nexus. First we need to configure our docker that runs in o
 	"insecure-registries":["NEXUS-IP:8083"]
 }
 ```
-<<<<<<< Updated upstream
-=======
 # Freestyle to Pipeline Job
 
 Chained Freestyle Jobs have their limitations - mostly to the UI and what plugins offer. Something more scriptable was needed, much better for CI/CD scenarios and that's why Pipeline Jobs were introduced in Jenkins.
@@ -158,4 +156,3 @@ Pipeline jobs allow you to:
 - evaluate conditional statements
 
 All of the above is not easily done using plugins (chained freestyle) not to mention maintenance overhead when using them!
->>>>>>> Stashed changes
