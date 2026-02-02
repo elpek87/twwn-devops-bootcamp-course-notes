@@ -305,3 +305,32 @@ script {
 In software development process when using multiple git branches along with Jenkins for CI/CD you may need to run test,build and deploy master branch and test all the others without deploying - Jenkins allow multibranch pipelines do accomplish that.
 
 Jenkinsfile is usually shared between all the branches in Multibranch Pipelines.
+
+Variable of BRANCH_NAME is specific to multibranch pipelines.
+
+When working with multiple branches you have them matched by regular expression and then Jenkins automatically creates pipeline for each branch.
+
+Dealing with multiple staged build does not require starting all the stages from the beginning - Jenkins allows starting from specific Stage.
+
+## CREDENTIALS IN JENKINS
+
+There are multiple kinds of credentials that can be used with Jenkins: username and password, SSH username with private key, certificate etc. Plugins can bring new types of credentials in Jenkins.
+
+In Jenkins credentials have scopes:
+
+1. System - available on Jenkins server but not for Jenkins jobs. Only internal operations of Jenkins
+2. Global - available everywhere
+3. Limited to a project - available only with multibranch pipeline (comes from "Folder plugin")
+
+## JENKINS SHARED LIBRARY
+
+In Jenkins, a shared library is used to centralize, reuse, and standardize pipeline code across multiple projects. Instead of copy-pasting Groovy scripts into every Jenkinsfile, you define them once and reuse them everywhere. Clean, scalable, and much easier to maintain. In other words it extends pipeline - has its own repository, is written in groovy, reference is shared in Jenkinsfile.
+
+
+Once you have such shared library it can be made available globally or for the project.
+
+Structure of shared library in Jenkins:
+
+- vars folder - functions that are called from Jenkinsfile, each function has its own Groovy file
+- src - helper code
+- resources - used for external libraries and non groovy files
