@@ -299,3 +299,9 @@ script {
 }
 
 ```
+
+## INTRO TO MULTIBRANCH PIPELINE
+
+In software development process when using multiple git branches along with Jenkins for CI/CD you may need to run test,build and deploy master branch and test all the others without deploying - Jenkins allow multibranch pipelines do accomplish that.
+
+Jenkinsfile is usually shared between all the branches in Multibranch Pipelines.
