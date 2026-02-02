@@ -334,3 +334,13 @@ Structure of shared library in Jenkins:
 - vars folder - functions that are called from Jenkinsfile, each function has its own Groovy file
 - src - helper code
 - resources - used for external libraries and non groovy files
+
+Shared library doesn't necessarily need to be defined globally - it can be called directly in Jenkinsfile:
+
+```
+library identifier: 'jenkins-shared-library@main', retriever: modernSCM(
+   [$class: 'GitSCMSource',
+   remote: 'https://xyz.com/repo.git',
+   credentialsId: 'GitHub-token'])
+```
+
