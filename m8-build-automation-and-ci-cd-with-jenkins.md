@@ -344,3 +344,59 @@ library identifier: 'jenkins-shared-library@main', retriever: modernSCM(
    credentialsId: 'GitHub-token'])
 ```
 
+##  WEBHOOKS
+
+Jenkins allows to trigger jobs in multiple way:
+
+1. Manual trigger
+2. Automatic trigger
+3. Scheduled trigger
+
+Automatic triggers use webhooks. To configure webhook in Github you need to:
+
+1. Add webhook in repository settings - main part is the "Payload URL" that goes like https://jenkins-addres.xyz:8080/github-webhook/
+2. Select "GitHub hook trigger for GITScm polling" in pipeline configuration
+
+For multibranch pipelines a plugin is needed - "Multibranch Scan Webhook Trigger". It is configured by selecting "Scan Multibranch Pipeline Triggers -> Scan by webhook".
+
+## VERSIONING THE APPLICATION
+
+Software versioning is the practice of assigning structured identifiers (version numbers or names) to software releases so developers and users can track changes, improvements, bug fixes, and compatibility over time.
+
+Usually version is structured into three parts: major.minor.patch
+
+**MAJOR** - big, possibly braking changes and not backward-compatibile
+
+**MINOR** - new but backward-compatibile changes, API features
+
+**PATCH** - minor changes and bug fixes, doesn't change API
+
+Sometimes suffixes such as SNAPSHOT, RC, RELEASE etc. are uses.
+
+In CI/CD process it is common to automatically increase version inside build automation.
+
+Bumping versions for specific type of the app:
+
+JAVA MAVEN:
+
+There's a plugin - build helper that operates on pom.xml that would for example bump up patch value in version and copy pom.xml to a new version of a file:
+
+```
+$ mvn build-helper:parse-version versions:set
+\-DnewVersion=\${parsedVersion.majorVersion}.\${parsedVersion.minorVersion}.\${parsedVersion.nextIncrementalVersion}
+```
+
+To bump up the minor version:
+
+```
+$ mvn build-helper:parse-version versions:set
+\-DnewVersion=\${parsedVersion.majorVersion}.\${parsedVersion.nextMinorVersion}.\${parsedVersion.IncrementalVersion}
+```
+
+If you add:
+
+`versions:commit` in the end old pom.xml file will be removed
+
+Whole process can be done automatically in Jenkins pipeline - both version bump and later committing version change to repository.
+
+When you have webhooks it can result in endless loop of building the pipeline. Jenkins plugins comes to play - "Ignore Committer Strategy" or for Github - "GitHub Commit Skip SCM Behaviour". The first plugin is configured under "Build Strategies" in pipeline configuration. There you can define what e-mail addresses of the committers would not trigger the pipeline.
