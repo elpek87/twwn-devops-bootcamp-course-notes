@@ -81,3 +81,54 @@ http://www.davidc.net/sites/default/subnets/subnets.html
 ## INTRODUCTION TO EC2 VIRTUAL CLOUD SERVER
 
 Amazon EC2 stands for Amazon Elastic Compute Cloud. It’s a core service from Amazon Web Services (AWS) that lets you rent virtual computers in the cloud and run applications on them—without owning or maintaining physical servers.
+
+Launching an EC2 instance is pretty straightforward - selecting OS, resources, login key pair and adjusting network configuration and security groups.
+
+Docker image to run on the server is in the repo:
+
+https://github.com/techworld-with-nana/react-nodejs-example
+
+1. Cloned the repo. Fixed the Dockerfile since version 10 of node image would not compile the code.
+
+2. Built it with:
+
+```
+$ docker buildx build --platform linux/arm64,linux/amd64 -t demo-app:1.0 .
+```
+3. Tagged the image with my repo:
+
+```
+$ docker tag demo-app:1.0 elpek87/demo-app:1.0
+```
+4. Logged into Dockerhub with:
+
+```
+$ docker login
+```
+
+5. Pushed the image:
+
+```
+$ docker push elpek87/demo-app:1.0
+```
+
+On the server:
+
+1. Installed docker:
+
+```
+# dnf install docker && systemctl start docker
+```
+
+2. Pulled the image from Dockerhub and ran it:
+
+```
+docker run -d -p 3000:3080 elpek87/demo-app:1.0
+```
+
+After adjusting security groups to allow inbound traffic on port 3000 the app was accessible:
+
+```
+curl -I http://3.66.215.226:3000
+HTTP/1.1 200 OK
+```
