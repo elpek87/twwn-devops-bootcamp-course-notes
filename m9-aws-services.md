@@ -234,3 +234,81 @@ Display information on EC2 instances:
 `$ aws ec2 describe-instances`
 
 All of the commands output can also be filtered - filter and query.
+
+To display InstanceIDs of EC2s of t2.micro type:
+`$ aws ec2 describe-instances --filters "Name=instance-type,Values=t2.micro" --query "Reservations[].Instances[].InstanceId"`
+
+To display instances running specific AMI version:
+`$ aws ec2 describe-instances --filters "Name=image-id,Values=ami-0191d47ba10441f0b"`
+
+# IAM CLI Commands
+
+Creating a group:
+`$ aws iam create-group --group-name MyGroupCli`
+
+ARN stands for Amazon Resource Name. It’s a globally unique identifier for any AWS resource.
+
+Creating a user:
+`$ aws iam create-user --user-name MyUserCli`
+
+Adding user to a group:
+`$ aws iam add-user-to-group --user-name MyUserCli --group-name MyGroupCli`
+
+Display users in group:
+`$ aws iam get-group --group-name MyGroupCli`
+
+Getting policy ARN:
+```
+$ aws iam list-policies --query 'Policies[?PolicyName==`AmazonEC2FullAccess`].Arn' --output text
+```
+
+Attach policy to a group:
+`$ aws iam attach-group-policy --group-name MyGroupCli --policy-arn arn:aws:iam::aws:policy/AmazonEC2FullAccess`
+
+List groups attached to a policy:
+`$ aws iam list-attached-group-policies --group-name MyGroupCli`
+
+Define password for user:
+`$ aws iam create-login-profile --user-name MyUserCli --password xyz --password-reset-required`
+
+Describe user:
+`$ aws iam get-group --group-name MyGroupCli`
+
+Creating custom policy - for example to allow user to change password requires JSON file:
+
+```
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "iam:ChangePassword",
+      "Resource": "arn:aws:iam::*:user/MyUserCli"
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iam:GetAccountPasswordPolicy",
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+Then you define it from file:
+`$ aws iam create-policy --policy-name changePwd --policy-document file://changePasswordPolicy.json`
+
+Attaching policy to a group:
+`$ aws iam attach-group-policy --group-name MyGroupCli --policy-arn arn:aws:iam::*:policy/changePwd`
+
+Creating Access Keys for a new user:
+`aws iam create-access-key --user-name MyUserCli`
+
+Switch user in AWSCLI:
+`$ aws configure` <= that would override the defaults
+
+`$ aws configure set aws_access_key_id ID`
+`$ aws configure set aws_aws_secret_access SECRET` <= that also messes the defaults
+
+To keep the defaults:
+`$ export AWS_ACCESS_KEY=ACCESS`
+`$ export AWS_SECRET_ACCESS_KEY=SECRET`
