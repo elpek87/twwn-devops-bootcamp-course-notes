@@ -132,3 +132,105 @@ After adjusting security groups to allow inbound traffic on port 3000 the app wa
 curl -I http://3.66.215.226:3000
 HTTP/1.1 200 OK
 ```
+
+## DEPLOY TO EC2 SERVER FROM JENKINS PIPELINE CI/CD
+
+To deploy to EC2 server using Jenkins pipeline first we need the SSH Agent plugin installed on Jenkins.
+
+Jenkins is going to use SSH private key from AWS to SSH onto EC2 in AWS.
+
+1. First we need to add (pipeline scoped) credentials of type "SSH username with private key" to credentials store in Jenkins.
+2. Next step is to add "SSH Agent" step in Pipeline Syntax under aws-multibranch-pipeline.
+3. Hit "Generate Pipeline Script" which produces for Jenkinsfile:
+```
+sshagent(['ec2-server-key']) {
+    // some block
+}
+```
+Host key on EC2 may change so we'll use `-o StrictHostKeyChecking=no` in ssh command definition in Jenkinsfile.
+
+Deploying single container by calling docker run on remote machine is alright but when the project needs multiple containers best way to deploy it is to use docker compose file.
+
+First we need compose plugin on AmazonLinux:
+```
+# curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 \
+  -o /usr/libexec/docker/cli-plugins/docker-compose
+
+# chmod +x /usr/libexec/docker/cli-plugins/docker-compose
+```
+
+When using Docker Desktop this step can be skipped - compose plugin is installed out of the box.
+
+## ECR - Elastic Container Registry
+
+Amazon Elastic Container Registry (ECR) is a fully managed Docker container image registry. Think of it as AWS’s private Docker Hub, but tightly integrated with the rest of AWS.
+
+First we just create the repository (private).
+
+In ECR you create repository per image - not a repository where you can store multiple images.
+
+To push the image to ECR registry first you have to login to AWS with awscli:
+
+```
+$ awscli login
+```
+Then the image needs to be tagged accordingly (renamed):
+
+```
+$ docker tag my-js-app:1.0 438987839758.dkr.ecr.eu-central-1.amazonaws.com/my-js-app:1.0
+```
+
+## Introduction to AWS CLI
+
+AWS CLI (Command Line Interface) is a tool that lets you control AWS from your terminal instead of clicking around in the web console.
+
+You can:
+- Provision infrastructure
+- Deploy apps
+- Rotate credentials
+- Clean up resources
+
+…all inside:
+- Bash scripts
+- CI/CD pipelines (Jenkins, GitHub Actions, GitLab CI)
+- Makefiles
+
+Initial configurations is done with:
+
+`$ aws configure`
+
+Configurations is stored in:
+
+`~/.aws`
+
+# Basic AWS CLI operations:
+
+Info on configured security groups:
+`$ aws ec2 describe-security-grpups`
+
+Info on VPCs:
+`$ aws ec2 describe-vpcs`
+
+Creating security groups:
+`$ aws ec2 create-security-group --group-name my-sg --description "My SG" --vpc-id vpc-xxx - creates security group`
+
+Allow incoming traffic on port 22 from specific IP:
+`$ aws ec2 authorize-security-group-ingress --group-id sg-xxx --protocol tcp --port 22 --cidr IP/MASK`
+
+Creating SSH key pair and saving private key:
+`$ ❯ aws ec2 create-key-pair --key-name MyKeyCli --query 'KeyMaterial' --output text > mykpcli.pem`
+
+Creating EC2 instance:
+```
+$ aws ec2 run-instances \
+--image-id ami-0191d47ba10441f0b \
+--count 1 \
+--instance-type t2.micro \
+--key-name MyKeyCli \
+--security-group-ids sg-xxx \
+--subnet-id subnet-xxx
+```
+Display information on EC2 instances:
+`$ aws ec2 describe-instances`
+
+All of the commands output can also be filtered - filter and query.
