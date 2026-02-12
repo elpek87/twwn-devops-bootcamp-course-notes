@@ -525,3 +525,181 @@ Release Management = Helm tracking, versioning, and controlling deployments over
 Helm doesn’t just apply YAML and walk away. It remembers what it deployed, how, and when.
 
 Thanks to this you can use: `$ helm upgrade <chartname>` and if something goes wrong: `$ helm rollback <chartname>`. Revision numbers are always incremented by 1.
+
+## HELM DEMO - MANAGED K8S CLUSTER
+
+KUBECONFIG is an environment variable that points to a file containing Kubernetes cluster configuration.
+
+To set the variable:
+`$ export KUBECONFIG=<path-to-config>`
+
+Then check if it works by:
+`$ kubectl get node`
+
+To add a remote Helm chart repository to your local Helm configuration so you can install charts from it:
+`$ helm repo add bitnami https://charts.bitnami.com/bitnami`
+
+Then we can search what is in the repository:
+`$ helm search repo bitnami`
+
+Now it's time to check what parameters does mongodb chart take in case we want to override some values.
+
+To install hem chart with overridden values:
+`$ helm install [our name] --values [values filename] [chart name]`
+
+`$ helm install mongodb --values helm-mongodb.yaml bitnami/mongodb`
+
+To deploy Mongo Express:
+`$ kubectl apply -f helm-mongo-express.yaml`
+
+To check the logs of the deployment:
+`$ kubectl logs <pod-name>`
+
+Let's deploy Ingress Controller:
+
+1. Add repo:
+`$ helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx`
+
+2. Install chart:
+`$ helm install nginx-ingress ingress-nginx/ingress-nginx --set controller.publishService.enabled=true`
+
+This also tells Ingress Controller to use its own Kubernetes Service to determine and publish its external IP address.
+
+Time to apply some ingress rules:
+`$ kubectl apply -f helm-ingress.yaml`
+
+
+Mongo Express is available on the hostname configured in ingress rule.
+
+Data is persistent thanks to volumes. Even if we terminate the pods:
+
+`$ kubectl scale --replicas=0 statefulset/mongodb`
+
+And wait until all the pods are gone:
+```
+❯ kubectl get pod
+NAME                                                      READY   STATUS        RESTARTS   AGE
+mongo-express-7b48c84bc8-98rvx                            1/1     Running       0          23m
+mongodb-0                                                 1/1     Terminating   0          33m
+mongodb-arbiter-0                                         1/1     Running       0          33m
+nginx-ingress-ingress-nginx-controller-586d8f687c-tnfhw   1/1     Running       0          18m
+```
+
+Then scale it back to original value of 3 replicas:
+
+`$ kubectl scale --replicas=3 statefulset/mongodb`
+
+Volumes get reattached to the pods.
+
+To uninstall helm chart simply use:
+`$ helm uninstall <chart name>`
+
+Volumes stay - don't get deleted.
+
+## DEPLOYING IMAGES IN KUBERNETES FROM PRIVATE DOCKER REPOSITORY
+
+To deploy some image from private image registry first you need to make contents of your .docker/config.json available to minikube:
+
+```
+kubectl create secret generic my-registry-key \
+  --from-file=.dockerconfigjson=$HOME/.docker/config.json \
+  --type=kubernetes.io/dockerconfigjson
+  ```
+
+then in deployment file we just use the secret in deployment file:
+```
+      imagePullSecrets:
+      - name: my-registry-key
+```
+
+## KUBERNETES OPERATORS FOR MANAGING COMPLEX APPLICATIONS
+
+A Kubernetes Operator is a custom controller that extends Kubernetes to manage complex applications automatically. It's mainly used with stateful apps. Maintaining such apps is more complex than the "regular" stateless apps - these are CRUD and K8S handles that. In stateful apps more things have to be done manually.
+
+Here comes the OPERATOR - it automatically takes care of such more complex stateful operators.
+
+Operators have control loop mechanism and watch for changes. It uses Custom Resource Definition (CRD) which is custom k8s component that extends k8s API. It also have some domain/app specific knowledge that lets it manage the app and its entire lifecycle.
+
+You can create an operator by yourself with Operator SDK.
+
+## SECURE YOUR CLUSTER - AUTHORIZATION WITH RBAC
+
+In k8s cluster the least privilege rule should be used.
+
+Kubernetes offers RBAC (Role Based Access Control):
+
+- roles define namespaced permissions (bound to specific NS)
+- they define list of resources that can be accessed - pod, deployment, service etc.
+- another thing what is defined is what action cab be done with this resource - list, get, update, delete etc.
+
+To link USER to a ROLE in K8S we use a component called *RoleBinding*.
+
+For ADMINS it is slightly different - you'd use *ClusterRole* component to define resources and permission in cluster wide manner. Then to assing such role we'd use *ClusterRoleBinding*.
+
+Kubernetes doesn't natively provide user management layer. Admins can choose from different authentication strategies. There is no such thing as kubernetes object for representing user accounts. External sources however can be used:
+
+- static file
+- certificate
+- some third party identity service (LDAP etc.)
+
+Then API server does the authentication when someone connects to the cluster.
+
+Kubernetes has the component that represents an application user - *ServiceAccount* (sa).
+`$ kubectl create serviceaccount sa1`
+
+Service accounts can be bound to the role with RoleBinding or ClusterRoleBinding (if need cluster-wide permissions).
+
+Example role (can get much more granular):
+```
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+  namespace: my-namespace
+rules:
+- apiGroups: [""]        # "" = core API group
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+```
+
+Example binding:
+```
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods-binding
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: my-app-sa
+  namespace: default
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+```
+
+Cluster-wide role:
+```
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cluster-pod-reader
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+```
+
+Commands to view roles:
+`$ kubectl get roles`
+
+`$ kubectl describe role <role-name>`
+
+To check if current user can perform given action:
+`$ kubectl auth can-i create deployments --namespace dev`
+
+Layers of security:
+
+1. API authentication
+2. Authorization with RBAC
