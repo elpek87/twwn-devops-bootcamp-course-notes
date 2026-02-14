@@ -703,3 +703,203 @@ Layers of security:
 
 1. API authentication
 2. Authorization with RBAC
+
+
+## MICROSERVICES IN KUBERNETES
+
+Kubernetes emerged as a platform for microservices.
+
+A microservice is a small, independent application that focuses ona single business capability that is deployed independently. Communicates with other services via network (usually APIs - HTTP/REST, gRPC, messaging). Sometimes communication is done using some "helper" (SideCar) for example in Service Mesh Architecture (Istio).
+
+Usually DevOps Engineers focus on deploying existing microservice apps in k8s cluster. There are some things that are worth knowing:
+
+1. What microservices you need to deploy?
+2. Which microservice is communicating with witch microservice?
+3. How they are communicating with each other? (API, message broker, service mesh)
+4. Which database are the microservices using?
+5. Do they depend on any third-party services?
+6. Which ports do the microservices use?
+7. Which service is accessible from outside the cluster?
+8. What images do microservices use and what environment variables each microservice expect?
+
+Knowing the above you can prepare the environment - deploying third-party apps that microservices depend on, creating ConfigMaps or Secrets and finally create kubernetes manifest (deployment + service) for each microservice.
+
+What DevOps doesn't need to know is how the code of the app works itself.
+
+Deploying microservices demo app to k8s @ Linode:
+
+1. `export KUBECONFIG=<path-to-kubeconfig-file>`
+2. `$ kubectl create ns microservices`
+3. `$ kubectl apply -f config.yaml -n microservices`
+
+Since we're using NodePort - all of the worker nodes should expose deployed web app on IP of the node and port 30007:
+
+```
+❯ curl -I http://172.105.76.59:30007
+HTTP/1.1 200 OK
+Set-Cookie: shop_session-id=654c539a-b770-45ac-b700-e44bf36eba85; Max-Age=172800
+Date: Sat, 14 Feb 2026 10:39:42 GMT
+Content-Type: text/html; charset=utf-8
+```
+
+### PRODUCTION AND SECURITY BEST PRACTICES
+
+## PRODUCTION BEST PRACTICES
+
+1. Specify a pinned version on each container image
+
+Without the exact version specification in image tag the latest get pulled by default - sometimes may lead to something unpredictable.
+
+2. Configure liveness probe on each container
+
+Health checks application after it starts. There are multiple ways and protocols of handling it. There are some parameters that can be used to fine tune it - like custom delays etc.
+```
+        livenessProbe:
+          grpc:
+            port: 8080
+          periodSeconds: 5
+```
+
+3. Configure readiness probe on each container
+
+Chcecks and lets k8s know that the app is ready to receive traffic (startup). Without such check k8s assumes that app is ready to receive traffic. There are some parameters that can be used to fine tune it - like custom delays etc.
+```
+        readinessProbe:
+          grpc:
+            port: 8080
+          periodSeconds: 5
+```
+4. Configure **resource requests** for each container
+
+In Kubernetes, a resource request defines the minimum amount of CPU and/or memory that a container is guaranteed to get when scheduled onto a node. These resources are defined in milicores (m) for CPU and mebibytes (Mi) for memory.
+
+```
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+```
+
+5. Configure **resource limits** where needed
+
+In Kubernetes, a resource limit defines the maximum amount of CPU and/or memory a container is allowed to use. If limits values are larger than biggest node it won't be scheduled.
+
+```
+          limits:
+            cpu: 200m
+            memory: 128Mi
+```
+
+6. Avoid NodePort configuration unless you are on dev, testing something. Generally use LoadBalancer or Ingress Controller.
+
+7. Pay attention to pod replicas number - by default it is 1 which is usually not enough. Replicas are set in specification section.
+
+8. Always use more than one worker node in your cluster and pay attention if replicas run on dirrerent nodes.
+
+To check if they run on different nodes:
+`$ kubectl -n microservices get pods -l app=adservice -o wide`
+
+9. Use labels for all resources
+
+10. Use namespaces where possible - makes it easier to keep things organized as well as when using access rights
+
+## SECURITY BEST PRACTICES:
+
+1. Ensure that used images ate free of vulnerabilities (scan images either manually or autimatically in pipelines)
+
+2. No root access to containers - check if it is not running in root user mode
+
+3. Update your K8S cluster to the latest version regularly (usually node by node)
+
+## DEMO PROJECT: CREATE HELM CHART FOR MICROSERVICES
+
+When services differ much from each other you create helm chart for each microservice - when on the other hand services are very similar there can be one shared helm chart for all microservices as a blueprint. There are some situations in which we can combine both of these options.
+
+# Basic structure of Helm Chart
+
+First we generate new Helm Chart directory - with basic metadata and templates - using:
+`$ helm create microservice`
+
+Values for the templates can come from:
+- values.yaml file in the chart
+- user supplied file passed with -f flag
+- parameter passed with --set flag
+
+Some rules for variables in helm:
+- Variables for helm are in camelcase format
+- Names should begin with a lowercase letters
+
+Vars can be defined in two ways flat or nested - helm however recommends flat approach:
+
+FLAT:
+```
+{{ .Values.appName }}
+
+Values:
+appName: myapp
+appReplicas: 1
+```
+NESTED:
+```
+{{ .Values.app.name }}
+
+Values:
+app:
+  name: myapp
+  replicas: 1
+  ```
+Env variables in our deployments can be defined as:
+```
+        env:
+          - name: {{ .Values.containerEnvVar.key }}
+            value: {{ .Values.containerEnvVar.value }}
+```
+Or if there are multiple vars and values then looping through a list:
+```
+        {{- range .Values.containerEnvVars }}
+          - name: {{ .key }}
+            value: {{ .value | quote }}
+        {{- end }}
+```
+
+When defining values if value is present in default values.yaml it can be overriden with custom values yaml file.
+
+To check correctness of yaml input file:
+`$ helm lint -f email-service-values.yaml microservice`
+
+To check if templates are getting correctly generated:
+`$ helm template -f values/redis-values.yaml charts/redis`
+
+or:
+`$ helm install --dry-run -f values/redis-values.yaml rediscart charts/redis`
+
+
+Deploying helm chart to k8s cluster:
+
+`$ helm install -f myvalues.yml releasename chart name`
+
+`$ helm install -f email-service-values.yaml microservice`
+
+## DEMO PROJECT: DEPLOY MICROSERVICES WITH HELM FILE
+
+A Helmfile is a declarative tool used to manage multiple Helm releases in Kubernetes in a single place. It brings cluster to the desired state.
+
+In a helmfile you can also override values:
+```
+- name: checkout
+    chart: charts/microservice
+    values:
+      - values/checkout-service-values.yaml
+      - key1: "value1"
+      - key2: "value2
+```
+To use helmfile you need additional app - *helmfile*.
+
+To install releases with helmfile:
+`$ helmfile sync`
+
+To uninstall the releases with helmfile:
+`$ helmfile destroy`
+
+Helm Charts are usually hosted in git repository - either with code or in separate repository.
+
