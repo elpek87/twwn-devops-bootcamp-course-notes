@@ -253,4 +253,27 @@ for product_row in range(2, product_list.max_row + 1)
 
 ## OOP: CLASSES AND OBJECTS
 
+Object-Oriented Programming (OOP) is a way of structuring code around objects instead of just functions. In OOP you create objects that contain data (variables) and behavior (functions).
+
+A class is blueprint for creating objects. It helps you define what data an object will have and what actions it can perform.
+
+In python files should be started with non capital letter and classes with the capital letter.
+
+- class is like an object constructor
+- all classes have __init__() function
+- __init__() is executed automatically when objects from the class are created
+- values are passed to the constructor as parameters
+- to create an object we need to call class constructor
+- functions that belong to a class are called methods
+- self is passed to a method automatically
+- classes usually are in separate files
+- in python almost everything is an object
+
 ## PROJECT: API REQUEST TO GITLAB
+
+When using string inside the string double quotes on both of them are not an option - we should go with single quotes on one of the string.
+```
+for project in my_projects:
+    print(f"Project Name: {project['name']}")
+```
+
