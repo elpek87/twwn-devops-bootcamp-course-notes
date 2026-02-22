@@ -384,4 +384,65 @@ When using kubeconfig.yaml (such as Akamai LKE): it's recommended to create jenk
 
 ## COMPLETE CI/CD PIPELINE WITH EKS AND DOCKERHUB
 
+Environment variables in Jenkinsfile can be set globally or scoped to certain stage.
+
+To substitute variable defined in file with its actual value we use *envsubst*. It needs to be installed in Jenkins with package *gettext-base* (Debian specific name).
+
+Install it in Jenkins container:
+`$ docker exec -it -u 0 epic_stonebraker bash`
+`# apt install gettext-base`
+
+```
+# which envsubst
+/usr/bin/envsubst
+```
+
+The envsubst creates a temporary file which can later be used in Jenkinsfile - with pipe.
+
+```
+sh 'envsubst  < kubernetes/deployment.yaml | kubectl apply -f -'
+```
+
+Since we're deploying image from DockerHub on EKS kubernetes must be able to authenticate with DockerHub - needs Secret defined for DockerHub. That's one-time thing (per namespace) so it is not going to be defined in pipeline since pipelines are repetitive. In terminal:
+
+```
+$ kubectl create secret docker-registry my-registry-key \
+> --docker-server=docker.io \
+> --docker-username=<my-dockerhub-login> \
+> --docker-password=<my-dockerhub-password>
+```
+
 ## COMPLETE CI/CD PIPELINE WITH EKS AND ECR
+
+Steps that need to be done to do a complete pipeline with EKS and ECR:
+
+1. Create registry in ECR (unlimited number of private repos, repo per app)
+2. Create credentials in Jenkins
+
+Type: Username with password
+
+Password is the one from:
+`$ aws ecr get-login-password --region eu-central1`
+
+3. Adjust building and tagging
+
+Repository changed so tagging part is different now
+
+4. Create secret for ECR in k8s
+
+Secret for ECR in K8S can be added as follows:
+
+```
+$ kubectl create secret docker-registry aws-registry-key \
+  --docker-server=<aws_account_id>.dkr.ecr.eu-central-1.amazonaws.com \
+  --docker-username=AWS \
+  --docker-password=$(aws ecr get-login-password --region <region>)
+```
+
+5. Update Jenkins file
+
+- adjust credentials
+- add docker repository URL to docker login - it's not default for docker like we had with DockerHub
+- parametrize docker repo / docker repo server - more efficient than hardcoding values.
+
+There are many more ways of deploying to EKS - worth exploring!
