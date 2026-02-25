@@ -276,4 +276,3 @@ When using string inside the string double quotes on both of them are not an opt
 for project in my_projects:
     print(f"Project Name: {project['name']}")
 ```
-
