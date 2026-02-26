@@ -106,6 +106,26 @@ Attach volume to a different device thant the one EC2 currently uses as primary.
 
 ## HANDLING ERRORS
 
+When doing operations with scripts problems do happen - it's important to write them in a way which would allow proper handling of the errors.
+
 ## WEBSITE MONITORING 1: SCHEDULED TASK TO MONITOR APPLICATION HEALTH
 
+To make an HTTP request to a website we use requests python module.
+
+To send an e-mail with python we use smtplib module. For accounts with MFA enabled just use application password. To access account password in python code it's best to set password as env variable and access it in python (os module) or add the password somewhere in file outside the code.
+
+In python **with** statement is an alternative to try/finally statements. IT is used in exception handling and code clean up.
+
+To simulate False from if function we can use:
+
+```
+if False:
+```
+
 ## WEBSITE MONITORING 2: RESTART APPLICATION AND REBOOT SERVER
+
+When web application does not respond with status 200 actually restarting it may be enough.
+
+To ssh to the remote server we're going to use Paramiko library.
+
+Linode has its own python library - linode_api4.
