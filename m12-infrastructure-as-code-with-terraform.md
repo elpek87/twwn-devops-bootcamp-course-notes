@@ -174,23 +174,262 @@ One of the most useful subcommands is:
 
 It will give you values used to create certain resource etc. However it's not often used - managing the resources is done with .tf file itself.
 
-
-
-
-
 ## OUTPUT VALUES
+
+Another way to see specific attribute of a resource is using output values:
+
+```
+output "dev-subnet-id" {
+    value = aws_subnet.dev-subnet-1.id
+}
+```
+
 
 ## VARIABLES IN TERRAFORM
 
+Variables in Terraform are used to make your configuration flexible, reusable, and easier to maintain. Instead of hard-coding values inside your Terraform files, you define variables and assign values to them when needed.
+
+Variable is defined using "variable" keyword:
+```
+variable "subnet_cidr_block" {
+    description = "subnet cidr block"
+}
+```
+
+And then you reference it like this:
+
+```
+cidr_block = var.subnet_cidr_block
+```
+
+There are three ways to assign variable:
+
+1. Using prompt when doing `$ terraform apply` - not the most comfortable way in the long run.
+2. Using command line like: `$ terraform apply -var "subnet_cidr_block=10.0.10.0/24"`.
+3. Using separate file `terraform.tfvars`.
+
+When to use input variables?
+
+When replicating same infrastructure for multiple environments.
+
+In this case we can separate variables into multiple variables file like ***terraform-dev.tfvars***. The when using `$ terraform apply` an error would pop up because Terraform will not be able to find variables file. It needs to be passed as parameter using `$ terraform apply -var-file terraform-dev.tfvars`.
+
+To define default value for variable in Terraform:
+
+```
+default = "10.0.10.0/24"
+```
+
+It's also possible to set type of a variable - useful for enforcing specific type for value:
+
+`type = string` or `type = list(string)`
+
+Then to access second element of the list - starts from 0:
+
+```
+cidr_block = var.cidr_blocks[1]
+```
+
+You can also use list of objects here:
+
+```
+ type = list(object({
+        cidr_block = string
+        name = string
+    }))
+```
+
+And then reference them like this:
+
+```
+    cidr_block = var.cidr_blocks[0].cidr_block
+    tags = {
+        Name: var.cidr_blocks[0].name
+    }
+```
+
 ## ENVIRONMENT VARIABLES IN TERRAFORM
+
+You can pass your provider credentials (or some other details) as environment variables like:
+
+```
+export AWS_SECRET_ACCESS_KEY=-xxx
+export AWS_ACCESS_KEY_ID=yyy
+```
+
+Terraform would automatically pick them up when connecting to provider - here AWS. Terraform can also pick the credentials up from `~/.aws/credentials`.
+
+You can also define your own global env vars with "TF_VAR" prefix - like that:
+
+```
+export TF_VAR_avail_zone="eu-central-1a"
+```
+
+Then you reference it in main terraform file like:
+
+```
+variable avail_zone{}
+
+availability_zone = var.avail_zone
+```
 
 ## CREATE GIT REPOSITORY FOR LOCAL TERRAFORM PROJECT
 
+When working with Terraform not the whole project directory should be pushed into a repository - state files, .teraform/ dir and .tfvars (may contain sensitive data) should be excluded.
+
+The .terraform.lock.hcl however can be stored in a repository so that all team members have the same version of the providers.
+
 ## AUTOMATE PROVISIONING EC2 WITH TERRAFORM - PART 1
+
+When creating VPC in AWS some items like routing table and NACL get created by dafault. Keep in mind that newly created VPC doesn't route any traffic to/from the Internet - just internal VPC traffic. We need Internet Gateway to access the Internet.
+
+Terraform doesn't really care about the order of the components defined in .tf file - it knows in which sequence they need to be created.
+
+By default newly created subnets are not associated with newly created route tables. You can either associate them to the new route tables or just use the default one like this:
+
+```
+resource "aws_default_route_table" "main-rtb" {
+    default_route_table_id = aws_vpc.myapp-vpc.default_route_table_id
+    route {
+        cidr_block = "0.0.0.0/0"
+        gateway_id = aws_internet_gateway.myapp-igw.id
+    }
+    tags = {
+        Name: "${var.env_prefix}-main-rtb"
+    }
+}
+
+resource "aws_route_table_association" "a-rtb-subnet" {
+    subnet_id = aws_subnet.myapp-subnet-1.id
+    route_table_id = aws_route_table.myapp-route-table.id
+
+}
+```
+
+Now we need to configure security group in AWS for incoming (ingress) and outgoing (egress) traffic:
+
+It can also be done with the default SG.
+
+```
+resource "aws_security_group" "myapp-sg" {
+    name = "myapp-sg"
+    vpce_id = aws_vpc.myapp-vpc.id
+
+    ingress {
+        from_port = 22
+        to_port = 22
+        protocol = "TCP"
+        cidr_block = [var.my_ip]
+    }
+
+    ingress {
+        from_port = 8080
+        to_port = 8080
+        protocol = "TCP"
+        cidr_block = ["0.0.0.0/0"]
+    }
+
+    egress {
+        from_port = 0
+        to_port = 0
+        protocol = "-1"
+        cidr_block = ["0.09.0.0/0"]
+        prefix_list_ids = []
+    }
+}
+```
+
+
+
+Comments in tf files can be done with:
+
+```
+ /* */
+```
 
 ## AUTOMATE PROVISIONING EC2 WITH TERRAFORM - PART 2
 
+To get the latest version of Amazon Linux image that is available (programmatically) just use this and filter out what's needed:
+
+```
+data "aws_ami" "latest-amazon-linux-image" {
+    most_recent = true
+    owners = ["amazon"]
+    filter {
+        name = "name"
+        values = ["al2023-ami-*-kernel-*-arm64"]
+    }
+    filter {
+        name = "virtualization-type"
+        values = ["hvm"]
+    }
+}
+```
+When creating an instance you can specify its SSH key pair in Amazon:
+
+```
+resource "aws_instance" "myapp-server" {
+    ami = data.aws_ami.latest-amazon-linux-image.id
+    instance_type = var.instance_type
+
+    subnet_id = aws_subnet.myapp-subnet-1.id
+    vpc_security_group_ids = [aws_default_security_group.default-sg.id]
+    availability_zone = var.avail_zone
+
+    associate_public_ip_address = true
+    key_name = "ec2-server-key"
+
+    tags = {
+        Name: "${var.env_prefix}-server"
+    }
+}
+```
+
+SSH key pair can also be copied over to the newly created EC2 instance. There's one thing to remember - the key pair itself must be generated locally.
+
+Then you can reference in two ways:
+
+```
+resource "aws_key_pair" "ssh-key" {
+    key_name = "server-key"
+    public_key = var.my_public_key
+}
+```
+
+Or using file location - here in variable:
+
+```
+resource "aws_key_pair" "ssh-key" {
+    key_name = "server-key"
+    public_key = file(var.public_key_location)
+}
+```
+
 ## AUTOMATE PROVISIONING EC2 WITH TERRAFORM - PART 3
+
+To make Terraform execute commands on created instance we use (in instance block):
+
+```
+ user_data = <<-EOF
+    #!/bin/bash
+    dnf update -y
+    dnf install -y docker
+    systemctl enable docker
+    systemctl start docker
+    docker run -d -p 8080:80 nginx
+    EOF
+    user_data_replace_on_change = true # start fresh when instance is recreated
+```
+
+Or using a script and referencing it with file:
+
+```
+user_data = file("entry-script.sh")
+```
+
+Terraform is for infrastructure management - it's not the best tool to manage applications.
+
+
 
 ## PROVISIONERS IN TERRAFORM
 
