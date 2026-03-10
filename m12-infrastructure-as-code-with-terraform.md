@@ -429,17 +429,160 @@ user_data = file("entry-script.sh")
 
 Terraform is for infrastructure management - it's not the best tool to manage applications.
 
-
-
 ## PROVISIONERS IN TERRAFORM
+
+Provisioners in Terraform are special blocks used to execute scripts or commands on a local machine or on a created resource (like an EC2 instance) as part of the resource creation or destruction process.
+
+They are typically used for bootstrapping, configuration, or running commands after a resource is created.
+
+This is how we use provisioner in .tf file:
+
+```
+    connection {
+        type = "ssh"
+        host = self.public_ip
+        user = "ec2-user"
+        private_key = file(private_key_location)
+    }
+
+    provisioner = "remote-exec" {
+        inline = [
+            "export ENV=dev",
+            "mkdir newdir"
+        ]
+    }
+```
+
+The above can also be done using file provisioner that would copy the script to the remote machine. Inside provision blocks you can have separate connection block - for working with multiple servers.
+
+```
+    provisioner "file" {
+        source = "entry-script.sh"
+        destination = "/home/ec2-user/entry-script-on-ec2.sh"
+    }
+
+    provisioner "remote-exec" {
+       inline = ["/home/ec2-user/entry-script-on-ec2.sh"]
+    }
+```
+
+Even better way si to use script directive for remote-exec provisioner:
+
+```
+provisioner "remote-exec" {
+       script = "/home/ec2-user/entry-script.sh"
+    }
+```
+
+There's also a way to execute something on local machine after remote instance gets created:
+
+```
+    provisioner "local-exec" {
+        command = "echo ${self.public_ip}"
+    }
+```
+
+Use provisioners only as the last resort - there are better ways to provision resources than using them.
+
+The "user_data" seem to be the one that remains possibility and works in a stable way.
+
+# Why shouldn't we use provisioners?
+
+1. Broken idempotency concept - infra tools should be able to be run multiple times without changing the results
+2. TF doesn't really know what gets executed this way
+3. Broken current-desired state comparison
+4. Broken declarative model.
+
+Alternative to **remote-exec** is to use configuration management tools like Ansible, Puppet, Chef  or CI/CD tools etc.
+
+An alternative to **local-exec** is to use **local** provider.
+
+If the remote provisioner fails - Terraform will mark provision resource (like EC2 instance) as failed and it would have to be recreated on the next run.
 
 ## MODULES IN TERRAFORM - PART 1
 
+In Terraform, a module is a container for multiple resources that are used together. It is basically a reusable set of Terraform configuration files that define infrastructure. Without them configurations make seem complex and produce huge files.
+
+Modules organize and group configurations, package them into distinct logical components that can be reused.
+
+Modules use parameter (input vars) and can output values - it's like function in programming.
+
+You can create your own modules or use the existing ones created by Terraform or other companies.
+
+Basically modules have inputs, outputs and dependencies.
+
 ## MODULES IN TERRAFORM - PART 2
+
+Common good practice is to split your .tf file into:
+
+- main.tf
+- variables.tf
+- outputs.tf
+- providers.tf
+
+These files do not need to be linked to each other from main.tf - Terraform knows they belong together.
+
+Terraform project structure consists of the root module and "child modules" (in modules subdirectory).
+
+Module comparison to function:
+
+input variables = like function arguments
+
+output values = like function return values
+
+If you want to reference variable from module it needs to be defined in main variables.tf and terraform.tfvars as well.
+
+To expose resource attributes to parent module we need to use output values.
+
+When using modules before we do `$ terraform apply` we need `$ terraform init` to initialize modules.
 
 ## MODULES IN TERRAFORM - PART 3
 
+When having a problem with entry-script.sh just use:
+
+```
+user_data = file("${path.module}/entry-script.sh")
+```
+
 ## AUTOMATE PROVISIONING EKS CLUSTER WITH TERRAFORM - PART 1
+
+AWS supplies control plane nodes and we're going to set up EC2 worker nodes in multiple AZs.
+
+Modules are downloaded with `$ terraform init`
+
+Best practice is to create 1 private and 1 public subnet in each AZ.
+
+When creating networking with vpc module we need to set:
+
+enable_nat_gateway = true - create NAT gateways in VPC
+single_nat_gateway = true - creates one NAT gateway for all private AZs
+enable_dns = true - enables DNS resolution in the VPC
+
+Here we need some special tagging:
+
+```
+
+  tags = {
+    "kubernetes.io/cluster/myapp-eks-cluster" = "shared"
+  }
+
+  public_subnets_tags = {
+    "kubernetes.io/cluster/myapp-eks-cluster" = "shared"
+    "kubernetes.io/role/elb" = 1
+  }
+
+  private_subnets = {
+    "kubernetes.io/cluster/myapp-eks-cluster" = "shared"
+  }
+}
+```
+
+What are tags used for?
+
+1. For labeling items in a clear, human readable way
+2. For referencing components from other components (programmatically) eg. for Cloud Controller Manager
+
+
 
 ## AUTOMATE PROVISIONING EKS CLUSTER WITH TERRAFORM - PART 2
 
