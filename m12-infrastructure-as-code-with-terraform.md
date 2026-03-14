@@ -550,19 +550,21 @@ AWS supplies control plane nodes and we're going to set up EC2 worker nodes in m
 
 Modules are downloaded with `$ terraform init`
 
+## AUTOMATE PROVISIONING EKS CLUSTER WITH TERRAFORM - PART 2
+
 Best practice is to create 1 private and 1 public subnet in each AZ.
 
 When creating networking with vpc module we need to set:
 
 enable_nat_gateway = true - create NAT gateways in VPC
 single_nat_gateway = true - creates one NAT gateway for all private AZs
-enable_dns = true - enables DNS resolution in the VPC
+enable_dns_support   = true
+enable_dns_hostnames = true
 
 Here we need some special tagging:
 
 ```
-
-  tags = {
+tags = {
     "kubernetes.io/cluster/myapp-eks-cluster" = "shared"
   }
 
@@ -573,8 +575,8 @@ Here we need some special tagging:
 
   private_subnets = {
     "kubernetes.io/cluster/myapp-eks-cluster" = "shared"
+    "kubernetes.io/role/internal-elb"
   }
-}
 ```
 
 What are tags used for?
@@ -582,19 +584,102 @@ What are tags used for?
 1. For labeling items in a clear, human readable way
 2. For referencing components from other components (programmatically) eg. for Cloud Controller Manager
 
+Now we use eks module.
 
+Worker nodes here can be:
 
-## AUTOMATE PROVISIONING EKS CLUSTER WITH TERRAFORM - PART 2
+- self managed
+- semi-managed
+- fargate
 
 ## AUTOMATE PROVISIONING EKS CLUSTER WITH TERRAFORM - PART 3
 
-## COMPLETE CI/CD WITH TERRAFORM - PART 1
+Worker nodes in one VPC can talk to control plane nodes in another VPC using NAT gateways - not necessarily IGW.
 
-## COMPLETE CI/CD WITH TERRAFORM - PART 2
+Public subnets are associated with IGW and private subnets are associated with NGW.
 
-## COMPLETE CI/CD WITH TERRAFORM - PART 3
+Terraform EKS module also took care of Security Groups and opening correct ports. Minimum required permissions principle.
+
+To configure kubectl to use new cluster:
+
+`$ aws eks update-kubeconfig --region eu-central-1 --name myapp-eks-cluster`
+
+This updates ~/.kube/config
+
+## COMPLETE CI/CD WITH TERRAFORM - PART 1-3
+
+Steps:
+
+1. Generate SSH key-pair
+2. Install Terraform inside Jenkins container (or plugin)
+3. Configure Terraform to provision server
+4. Adjust Jenkinsfile accordingly
+
+Since there is no tfvars file when running terraform in a CI/CD pipeline there are several ways to set variables values:
+
+1. Using **default** keyword (for values that are not going to change that much)'
+
+```
+variable vpc_cidr_block {
+    default = "10.0.0.0/16"
+}
+```
+
+2.  Using Terraform environment variable - **TF_VAR_name**
+
+```
+TF_VAR_env_prefix = "test"
+```
+
+To access Terraform output from within Jenkins pipeline:
+
+```
+EC2_PUBLIC_IP = sh(
+    script: "terraform output ec2_public_ip",
+    returnStdout: true
+).trim()
+```
+To avoid problems with instance not being ready to run the script the easiest solution is to wait a bit:
+
+```
+echo "Waiting for EC2 server to initialize"
+sleep(time: 90, unit: "SECONDS")
+```
 
 ## REMOTE STATE IN TERRAFORM
 
+To share terraform state file it's best to use remote storage. Then it can be backed up, shared and keep sensitive data off disk.
+
+Default storage for state file is an S3 bucket.
+
+It's good to have the file versioned (in S3)
+
+Here's how to define it:
+
+```
+terraform {
+    required_version = ">= 0.12"
+    backend  "s3" {
+        bucket = "rtf-bucket-s3"
+        key = "myapp/state.tfstate"
+        region = "eu-central-1"
+
+    }
+}
+```
+
 ## TERRAFORM BEST PRACTICES
 
+State file related best practices:
+
+1. Only change state file through TF commands - never directly
+2. Always setup shared, remote storage for terraform state file
+3. Use state locking - in AWS it's done with Amazon Dynamo DB not all of the backends support it
+4. Backup and version the state file
+5. Use dedicated state file for each environment
+
+Other:
+
+1. Host TF code in its own git repository
+2. Use CI for TF code just like you do for other projects (test, review)
+3. Try to apply infrastructure changes only through CD pipeline
