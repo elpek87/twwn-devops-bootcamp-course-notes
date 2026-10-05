@@ -1,4 +1,6 @@
-# Containers with Docker
+![Logo](assets/devops-bootcamp-logo.png)
+
+## CONTAINERS WITH DOCKER
 
 ## What is a container?
 
