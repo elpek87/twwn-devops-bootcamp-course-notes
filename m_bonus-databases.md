@@ -1,4 +1,6 @@
-# BONUS - Databases
+![Logo](assets/devops-bootcamp-logo.png)
+
+## BONUS - Databases
 
 Database is an organized collection of information stored electronically that allows to be easily stored, searched, updated and deleted.
 
