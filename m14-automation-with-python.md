@@ -1,3 +1,5 @@
+![Logo](assets/devops-bootcamp-logo.png)
+
 # AUTOMATION WITH PYTHON
 
 ## INTRODUCTION TO BOTO LIBRARY (AWS SDK FOR PYTHON)
