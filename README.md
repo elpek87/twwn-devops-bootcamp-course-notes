@@ -1,7 +1,7 @@
 ![Logo](assets/devops-bootcamp-logo.png)
 
-# twwn-devops-bootcamp-course-notes
+# Tech World With Nana DevOps Bootcamp 
 
-Techworld with Nana DevOps Bootcamp Course Notes
+Collection of notes taken when working with Techworld with Nana DevOps Bootcamp
 
-Notes for Module 2 were skipped - Systems Administrator.
+Notes for Module 2 were skipped - Systems Administrator here.
