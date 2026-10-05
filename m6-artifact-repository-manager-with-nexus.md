@@ -1,4 +1,6 @@
-## Artifact Repository Manager with Nexus
+![Logo](assets/devops-bootcamp-logo.png)
+
+## ARTIFACT REPOSITORY MANAGER WITH NEXUS
 
 **Artifact Repository** is a centralized system for storing, versioning, and distributing build outputs (called artifacts) across your delivery pipeline.
 
