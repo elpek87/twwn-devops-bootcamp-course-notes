@@ -1,4 +1,6 @@
-# Build Automation & CI/CD with Jenkins
+![Logo](assets/devops-bootcamp-logo.png)
+
+## BUILD AUTOMATION & CI/CD WITH JENKINS
 
 Build automation is a practice of automatically turning source code into a working, testable, and deployable artifact—without manual steps.
 
