@@ -1,4 +1,6 @@
-# AWS Services
+![Logo](assets/devops-bootcamp-logo.png)
+
+# AWS SERVICES
 
 ## INTRODUCTION TO AWS
 
