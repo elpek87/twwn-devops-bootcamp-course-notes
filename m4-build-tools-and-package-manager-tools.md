@@ -1,4 +1,6 @@
-## MODULE 4 - Build Tools and Package Manager Tools
+![Logo](assets/devops-bootcamp-logo.png)
+
+## BUILD TOOLS AND PACKAGE MANAGER TOOLS
 
 Building code - process of transforming source code into something runnable. It consumes dependencies and produces artifacts - these are used to deploy.
 
