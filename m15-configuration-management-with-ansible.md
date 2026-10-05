@@ -1,3 +1,5 @@
+![Logo](assets/devops-bootcamp-logo.png)
+
 # CONFIGURATION MANAGEMENT WITH ANSIBLE
 
 ## INTRODUCTION TO ANSIBLE
