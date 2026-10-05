@@ -1,4 +1,6 @@
-# MODULE 3 - Version Control wit GIT
+![Logo](assets/devops-bootcamp-logo.png)
+
+# VERSION CONTROL WITH GIT
 
 ## Basic commands walkthrough:
 
