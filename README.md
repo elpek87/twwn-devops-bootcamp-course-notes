@@ -1,4 +1,4 @@
-![Logo](../assets/devops-bootcamp-logo.png)
+![Logo](assets/devops-bootcamp-logo.png)
 
 # twwn-devops-bootcamp-course-notes
 
