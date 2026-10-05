@@ -1,3 +1,5 @@
+![Logo](assets/devops-bootcamp-logo.png)
+
 # INFRASTRUCTURE AS CODE WITH TERRAFORM
 
 ## INTRODUCTION TO TERRAFORM
