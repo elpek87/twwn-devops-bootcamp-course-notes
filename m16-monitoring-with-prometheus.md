@@ -1,3 +1,5 @@
+![Logo](assets/devops-bootcamp-logo.png)
+
 # MONITORING WITH PROMETHEUS
 
 ## INTRODUCTION TO MONITORING WITH PROMETHEUS
