@@ -291,7 +291,11 @@ keyed_groups:
 ## PROJECT: DEPLOYING APPLICATION IN K8S
 
 1. Set the K8S cluster up using TF from previous modules.
-2. Configure it using kubernetes.core.k8s module in ansible.
+2. Configure it using kubernetes.core.k8s module in ansible. If module is missing - install it with requirements file:
+
+```
+$ ansible-galaxy collection install -r requirements.yaml
+```
 
 After creating EKS cluster - to update context with kubeconfig in local dir:
 
