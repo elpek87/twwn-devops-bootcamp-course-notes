@@ -1,4 +1,6 @@
-## Cloud & Infrastructure as Service Basics
+![Logo](assets/devops-bootcamp-logo.png)
+
+## CLOUD AND INFRASTRUCTURE AS A SERVICE BASICS
 
 Add user to run the app:
 
